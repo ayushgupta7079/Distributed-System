@@ -1,0 +1,61 @@
+version: '3.9'
+
+networks:
+    n1:
+        name: n1
+
+services:
+    mysql:
+        image: mysql:latest
+        container_name: mysql_db
+        hostname: mysql_db
+        environment:
+            MYSQL_ROOT_PASSWORD: "test"
+            MYSQL_DATABASE: "test"
+            MYSQL_USER: "root"
+            MYSQL_PASSWORD: "test"
+        ports:
+            - "3306:3306"
+        networks:
+            n1: {}  
+
+    serv:        
+        build: ./server
+        image: server
+        environment:
+            - PYTHONUNBUFFERED=1
+        privileged: true
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        networks:
+            n1: {}
+    
+    lb:
+        build: ./load_balancer
+        image: lb
+        container_name: lb
+        environment:
+            - NUM_SERV=3
+            - NUM_VIRT_SERV=9
+            - SLOTS=512
+            - PYTHONUNBUFFERED=1
+        ports:
+            - "5000:5000"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        privileged: true
+        networks:
+            n1: {}
+    sm:
+        build: ./shard_manager
+        image: sm
+        container_name: sm
+        environment:
+            - PYTHONUNBUFFERED=1
+        ports:
+            - "5001:5001"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        privileged: true
+        networks:
+            n1: {}
